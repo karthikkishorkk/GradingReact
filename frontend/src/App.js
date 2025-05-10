@@ -13,7 +13,7 @@ const router = createBrowserRouter([
   { path: "/create-event", element: <CreateEventForm/> },
   { path: "/create-teacher", element: <CreateTeacher/> },
   { path: "/events", element: <EventList/> },
-  { path: "/event/:id", element: <ModifyEvent/> },
+  { path: "/modify-event/:id", element: <ModifyEvent/> },
 ]);
 
 function App() {

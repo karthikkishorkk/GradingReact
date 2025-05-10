@@ -20,7 +20,7 @@ export default function EventList() {
           <li
             key={event.ID}
             className="p-4 border rounded hover:bg-gray-100 cursor-pointer"
-            onClick={() => navigate(`/event/${event.event_id}`)}
+            onClick={() => navigate(`/modify-event/${event.event_id}`)}
           >
             <h2 className="text-lg font-semibold">{event.event_name}</h2>
             <p className="text-sm">{event.event_description}</p>

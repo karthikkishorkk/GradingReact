@@ -16,6 +16,10 @@ CREATE TABLE Event (
     event_description TEXT
 );
 
+ALTER TABLE Event
+ADD CONSTRAINT unique_event_name UNIQUE (event_name);
+
+
 -- 2. Role Table
 CREATE TABLE Role (
     role_id SERIAL PRIMARY KEY,
@@ -25,6 +29,9 @@ CREATE TABLE Role (
     event_id INT NOT NULL,
     FOREIGN KEY (event_id) REFERENCES Event(event_id) ON DELETE CASCADE
 );
+
+ALTER TABLE role
+ADD CONSTRAINT unique_role_name_per_event UNIQUE (event_id, role_name);
 
 -- 3. Teacher Table
 CREATE TABLE Teacher (
