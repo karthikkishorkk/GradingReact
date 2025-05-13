@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; 
 
 export default function CreateEventForm() {
+  const navigate = useNavigate(); 
   const [event, setEvent] = useState({
     event_name: '',
     start_date: '',
@@ -72,11 +73,13 @@ export default function CreateEventForm() {
 
       for (let r of roles) {
         const rolePayload = {
-          name: r.role,
-          point: parseInt(r.points, 10),
-          head_count: parseInt(r.headcount, 10),
+          role_name: r.role,
+          role_point: parseInt(r.points, 10),
+          role_headcount: parseInt(r.headcount, 10),
           event_id: eventId,
         };
+
+        console.log('Sending role data:', rolePayload); 
 
         const roleRes = await fetch('http://localhost:8085/roles', {
           method: 'POST',
@@ -95,7 +98,7 @@ export default function CreateEventForm() {
 
       setRoles([]);
       alert('All roles submitted!');
-      Navigate('/events');
+      navigate('/events'); // Fixed navigation
     } catch (err) {
       console.error('Network error:', err);
       setError('Network error');
@@ -123,88 +126,88 @@ export default function CreateEventForm() {
           />
         </div>
 
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
-        Start Date
-      </label>
-      <input
-        id="start_date"
-        type="date"
-        name="start_date"
-        value={event.start_date}
-        onChange={handleChange}
-        required
-        className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-    <div>
-      <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-1">
-        Start Time
-      </label>
-      <input
-        id="start_time"
-        type="time"
-        name="start_time"
-        value={event.start_time}
-        onChange={handleChange}
-        required
-        className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-    <div>
-      <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
-        End Date
-      </label>
-      <input
-        id="end_date"
-        type="date"
-        name="end_date"
-        value={event.end_date}
-        onChange={handleChange}
-        required
-        className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-    <div>
-      <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-1">
-        End Time
-      </label>
-      <input
-        id="end_time"
-        type="time"
-        name="end_time"
-        value={event.end_time}
-        onChange={handleChange}
-        required
-        className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              id="start_date"
+              type="date"
+              name="start_date"
+              value={event.start_date}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-1">
+              Start Time
+            </label>
+            <input
+              id="start_time"
+              type="time"
+              name="start_time"
+              value={event.start_time}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              id="end_date"
+              type="date"
+              name="end_date"
+              value={event.end_date}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-1">
+              End Time
+            </label>
+            <input
+              id="end_time"
+              type="time"
+              name="end_time"
+              value={event.end_time}
+              onChange={handleChange}
+              required
+              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
 
-  <div>
-    <label htmlFor="event_description" className="block text-sm font-medium text-gray-700 mb-1">
-      Event Description
-    </label>
-    <textarea
-      id="event_description"
-      name="event_description"
-      placeholder="Event Description"
-      value={event.event_description}
-      onChange={handleChange}
-      required
-      rows={4}
-      className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
-    />
-  </div>
+        <div>
+          <label htmlFor="event_description" className="block text-sm font-medium text-gray-700 mb-1">
+            Event Description
+          </label>
+          <textarea
+            id="event_description"
+            name="event_description"
+            placeholder="Event Description"
+            value={event.event_description}
+            onChange={handleChange}
+            required
+            rows={4}
+            className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-  <button
-    type="submit"
-    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-md transition duration-150"
-  >
-    Create Event
-  </button>
-</form>
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-md transition duration-150"
+        >
+          Create Event
+        </button>
+      </form>
 
       {createdEvent && (
         <div className="mt-8 p-5 border rounded-md bg-green-50">
@@ -223,30 +226,30 @@ export default function CreateEventForm() {
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Add Volunteer Roles</h2>
         <form className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            className="flex-1 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-            type="text"
-            placeholder="Role title"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            required
-          />
-          <input
-            className="w-24 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-            type="number"
-            placeholder="Points"
-            value={points}
-            onChange={(e) => setPoints(e.target.value)}
-            required
-          />
-          <input
-            className="w-32 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-            type="number"
-            placeholder="Headcount"
-            value={headcount}
-            onChange={(e) => setHeadcount(e.target.value)}
-            required
-          />
+            <input
+              className="flex-1 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+              type="text"
+              placeholder="Role title"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              required
+            />
+            <input
+              className="w-24 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+              type="number"
+              placeholder="Points"
+              value={points}
+              onChange={(e) => setPoints(e.target.value)}
+              required
+            />
+            <input
+              className="w-32 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+              type="number"
+              placeholder="Headcount"
+              value={headcount}
+              onChange={(e) => setHeadcount(e.target.value)}
+              required
+            />
           </div>
 
           <div className="flex gap-4">
@@ -258,6 +261,7 @@ export default function CreateEventForm() {
               Add
             </button>
             <button
+              type="button" 
               onClick={handleSubmitRoles}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md"
             >
@@ -274,6 +278,7 @@ export default function CreateEventForm() {
                   {r.role} - {r.points} pts | {r.headcount} needed
                 </span>
                 <button
+                  type="button"
                   className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md"
                   onClick={() => handleDeleteRole(index)}
                 >

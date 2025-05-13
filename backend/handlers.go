@@ -1,9 +1,106 @@
 package main
 
 import (
-	"net/http"
+	"database/sql"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
+	"net/http"
 )
+
+func Signup(c *gin.Context) {
+	var user User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Check for valid role
+	if user.Role != "admin" && user.Role != "teacher" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role"})
+		return
+	}
+
+	// Check if email already exists
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM \"User\" WHERE email=$1)", user.Email).Scan(&exists)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+	if exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
+		return
+	}
+
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
+	// Insert user into database
+	err = db.QueryRow(
+		`INSERT INTO "User" (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING user_id`,
+		user.Name, user.Email, string(hashedPassword), user.Role,
+	).Scan(&user.ID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User created successfully",
+		"user_id": user.ID,
+	})
+}
+
+func Login(c *gin.Context) {
+	type LoginRequest struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	type LoginResponse struct {
+		Message string `json:"message"`
+		Role    string `json:"role,omitempty"`
+		Name    string `json:"name,omitempty"`
+	}
+
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	var (
+		hashedPassword string
+		name           string
+		role           string
+	)
+
+	query := `SELECT password, name, role FROM "User" WHERE email = $1`
+	err := db.QueryRow(query, req.Email).Scan(&hashedPassword, &name, &role)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, LoginResponse{
+		Message: "Login successful",
+		Name:    name,
+		Role:    role,
+	})
+}
 
 func CreateEvent(c *gin.Context) {
 	var event Event
@@ -97,17 +194,17 @@ func AssignTeacherToRole(c *gin.Context) {
 
 func GetTopTeachers(c *gin.Context) {
 	query := `
-        SELECT 
-            t.teacher_id, 
-            t.teacher_name,
-            COALESCE(SUM(r.role_point), 0) as total_points
-        FROM Teacher t
-        LEFT JOIN TeacherAssignment ta ON t.teacher_id = ta.teacher_id
-        LEFT JOIN Role r ON ta.role_id = r.role_id
-        GROUP BY t.teacher_id, t.teacher_name
-        ORDER BY total_points DESC
-        LIMIT 10;
-    `
+		SELECT 
+			t.teacher_id, 
+			t.teacher_name,
+			COALESCE(SUM(r.role_point), 0) as total_points
+		FROM Teacher t
+		LEFT JOIN TeacherAssignment ta ON t.teacher_id = ta.teacher_id
+		LEFT JOIN Role r ON ta.role_id = r.role_id
+		GROUP BY t.teacher_id, t.teacher_name
+		ORDER BY total_points DESC
+		LIMIT 10;
+	`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -117,7 +214,7 @@ func GetTopTeachers(c *gin.Context) {
 	defer rows.Close()
 
 	type TopTeacher struct {
-		ID     int    `json:"id"`
+		ID     int    `json:"teacher_id"`
 		Name   string `json:"teacher_name"`
 		Points int    `json:"points"`
 	}
@@ -143,10 +240,13 @@ func CreateTeacher(c *gin.Context) {
 		return
 	}
 
-	query := `INSERT INTO Teacher (teacher_name, email, department, position, profile_photo)
-              VALUES ($1, $2, $3, $4, $5) RETURNING teacher_id`
+	query := `
+		INSERT INTO Teacher (teacher_name, email, department_id, profile_photo, user_id)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING teacher_id
+	`
 	var teacherID int
-	err := db.QueryRow(query, teacher.Name, teacher.Email, teacher.Department, teacher.Position, teacher.ProfilePhoto).Scan(&teacherID)
+	err := db.QueryRow(query, teacher.Name, teacher.Email, teacher.DepartmentID, teacher.ProfilePhoto, teacher.UserID).Scan(&teacherID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -176,7 +276,19 @@ func CreateRole(c *gin.Context) {
 }
 
 func ListTeachers(c *gin.Context) {
-	rows, err := db.Query(`SELECT teacher_id, teacher_name, email, department, position, profile_photo FROM Teacher`)
+	query := `
+		SELECT 
+			t.teacher_id, 
+			t.teacher_name, 
+			t.email, 
+			t.department_id, 
+			t.profile_photo, 
+			d.department_name
+		FROM Teacher t
+		LEFT JOIN Department d ON t.department_id = d.department_id
+	`
+
+	rows, err := db.Query(query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -186,10 +298,12 @@ func ListTeachers(c *gin.Context) {
 	var teachers []Teacher
 	for rows.Next() {
 		var t Teacher
-		if err := rows.Scan(&t.ID, &t.Name, &t.Email, &t.Department, &t.Position, &t.ProfilePhoto); err != nil {
+		var departmentName string
+		if err := rows.Scan(&t.ID, &t.Name, &t.Email, &t.DepartmentID, &t.ProfilePhoto, &departmentName); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
 		teachers = append(teachers, t)
 	}
 
@@ -197,7 +311,7 @@ func ListTeachers(c *gin.Context) {
 }
 
 func GetRolesByEventID(c *gin.Context) {
-	eventID := c.Param("id") // expects route /roles/:id
+	eventID := c.Param("id")
 	if eventID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "event_id is required"})
 		return
