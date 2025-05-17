@@ -10,7 +10,7 @@ var db *sql.DB
 
 func InitDB() {
 	var err error
-	db, err = sql.Open("postgres", "host=localhost port=5432 user=postgres password=password dbname=gradingreact sslmode=disable")
+	db, err = sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=PdfGeneration sslmode=disable")
 	if err != nil {
 		log.Fatal("Error connecting to database:", err)
 	}
